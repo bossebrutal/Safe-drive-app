@@ -49,6 +49,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 *.egg
+dist/
+build/
 
 # Konfigurations-/hemligheter
 # (om du har en fil med lösenord, API-nycklar etc.)
@@ -71,6 +73,13 @@ __pycache__/
 *.ckpt
 *.h5
 *.pth
+*.tensorboard
+runs/
+tmp/
+output/
+savefile/
+
+CULaneLogs/
 
 # TensorBoard/loggar
 runs/
@@ -87,6 +96,8 @@ machinelearning/tmp_*
 machinelearning/output_*
 machinelearning/vis.jpg
 
+#Ultra-Fast-Lane-Detection
+machinelearning/Ultra-Fast-Lane-Detection/
 
 # Lite backend-data
 backend/static/
