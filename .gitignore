@@ -1,0 +1,126 @@
+# ==============================================
+# 1. Globalt / OS-specifikt
+# ==============================================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ==============================================
+# 2. Frontend / Node (React / React Native / Expo)
+# ==============================================
+# Node-moduler
+node_modules/
+
+# Bygg-artifakter (React Native / Expo)
+.expo/
+.expo-shared/
+android/app/build/
+ios/DerivedData/
+ios/build/
+
+# Loggar
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Miljöfiler (om du använder .env)
+.env
+.env.local
+.env.development*
+.env.test*
+.env.production*
+
+# Bundle / kompilat
+*.jsbundle
+
+# ==============================================
+# 3. Backend / Python
+# ==============================================
+# Virtual environments
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+
+# Konfigurations-/hemligheter
+# (om du har en fil med lösenord, API-nycklar etc.)
+*.ini
+*.cfg
+*.env
+
+# Python-kompilatfiler
+*.so
+*.pyd
+
+# Loggfiler
+*.log
+
+# ==============================================
+# 4. Machine Learning – stora filer och data
+# ==============================================
+# Modellvikter / checkpoints
+*.pt
+*.ckpt
+*.h5
+*.pth
+
+# TensorBoard/loggar
+runs/
+logs/
+
+# Dataset och tillfälliga utdata (anpassa efter dina mappar)
+machinelearning/data/
+machinelearning/test_images/
+machinelearning/tested_images/
+machinelearning/Ultra-Fast-Lane-Detection/tmp_eval/
+
+# Objekt som genereras av körningar (t ex bilder, videoprocessing)
+machinelearning/tmp_*
+machinelearning/output_*
+machinelearning/vis.jpg
+
+
+# Lite backend-data
+backend/static/
+backend/uploads/
+
+#Privat README
+docs/READMEprivat.md
+
+# ==============================================
+# 5. IDE / Editor / Projekt-specifikt
+# ==============================================
+# VS Code
+.vscode/
+
+# IntelliJ / PyCharm
+.idea/
+*.iml
+
+# JetBrains specific
+*.ipr
+*.iws
+
+# ==============================================
+# 6. Andra filer att överväga
+# ==============================================
+# Om du använder Git LFS för storfiler – lägg ej lfs-konfiguration i själva repot:
+# .gitattributes
+
+# Bygg-artifakter eller kompilat i andra språk (om tillämpligt)
+*.exe
+*.dll
+*.o
+*.a
+
+# ==============================================
+# Slut på .gitignore
+# ==============================================

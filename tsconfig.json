@@ -1,0 +1,20 @@
+{
+  "extends": "./node_modules/expo/tsconfig.base",
+  "compilerOptions": {
+    "jsx": "react-native",
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "App.tsx",
+    "screens/**/*.ts",
+    "screens/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "services/**/*.ts",
+    "services/**/*.tsx",
+    "styles/**/*.ts",
+    "styles/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
