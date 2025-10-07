@@ -80,7 +80,7 @@ A React Native mobile application that helps drivers stay safe on the road using
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/bossebrutal/safedriveapp.git
+   git clone https://github.com/bossebrutal/Safe-drive-app.git
    cd safedriveapp
    ```
 
@@ -222,7 +222,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Developer**: Patrik Winkler  
 **GitHub**: [@bossebrutal](https://github.com/bossebrutal)  
-**Project Link**: [https://github.com/bossebrutal/safedriveapp](https://github.com/bossebrutal/safedriveapp)
+**Project Link**: [https://github.com/bossebrutal/Safe-drive-app.git](https://github.com/bossebrutal/Safe-drive-app.git)
 
 ---
 
