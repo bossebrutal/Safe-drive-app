@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text, Float
 from sqlalchemy.orm import relationship
 from db import Base
 
@@ -25,6 +25,7 @@ class User(Base):
     driving_sessions = relationship("DrivingSession", back_populates="user", cascade="all, delete-orphan")
     rewards = relationship("UserReward", back_populates="user", cascade="all, delete-orphan")
     photo_uploads = relationship("PhotoUpload", back_populates="user", cascade="all, delete-orphan")
+    password_reset_codes = relationship("PasswordResetCode", back_populates="user", cascade="all, delete-orphan")
 
 class Car(Base):
     __tablename__ = "cars"
@@ -104,6 +105,7 @@ class DrivingSession(Base):
     start_time   = Column(DateTime, default=datetime.utcnow)
     end_time     = Column(DateTime, nullable=True)
     total_points = Column(Integer, default=0)
+    duration    = Column(Float, nullable=False, default=0.0)
 
     user   = relationship("User", back_populates="driving_sessions")
     events = relationship("PointEvent", back_populates="session", cascade="all, delete-orphan")
@@ -127,16 +129,22 @@ class Reward(Base):
     title       = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     cost_points = Column(Integer, nullable=False)
+    expires_at  = Column(DateTime, nullable=True) 
+    location    = Column(String(255), nullable=True) 
+
 
     user_rewards = relationship("UserReward", back_populates="reward", cascade="all, delete-orphan")
 
 class UserReward(Base):
     __tablename__ = "user_rewards"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    reward_id  = Column(Integer, ForeignKey("rewards.id"), nullable=False)
-    claimed_at = Column(DateTime, default=datetime.utcnow)
+    id          = Column(Integer, primary_key=True, index=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reward_id   = Column(Integer, ForeignKey("rewards.id"), nullable=False)
+    claimed_at  = Column(DateTime, default=datetime.utcnow)
+    used        = Column(Boolean, default=False)           # <-- TRUE/FALSE om använd
+    redeemed_at = Column(DateTime, nullable=True)          # <-- När rewarden användes
+    expires_at  = Column(DateTime, nullable=True)
 
     user   = relationship("User", back_populates="rewards")
     reward = relationship("Reward", back_populates="user_rewards")
@@ -162,3 +170,13 @@ class PhotoUpload(Base):
 
     # Relation till User
     user = relationship("User", back_populates="photo_uploads")
+
+class PasswordResetCode(Base):
+    __tablename__ = "password_reset_codes"
+    id          = Column(Integer, primary_key=True, index=True)
+    user_id     = Column(Integer, ForeignKey("users.id"), nullable=False)
+    code        = Column(String, nullable=False, index=True)
+    expires_at  = Column(DateTime, nullable=False)
+    used        = Column(Boolean, default=False)
+
+    user = relationship("User", back_populates="password_reset_codes")

@@ -47,7 +47,7 @@ För att återuppta träningen utan att behöva börja om från epok 0, peka `re
     resume = None
 
    # RESUME MODELL FRÅN ep003.pth, ändra till senast sparade .pth
-    resume  = '/home/patrikwinkler/CULaneLogs/ufld_culane_res50/20250603_130932_lr_1e-01_b_32/ep003.pth'
+    resume  = '/home/patrikwinkler/CULaneLogs/ufld_culane_res50multi/20250605_145936_lr_1e-01_b_32/ep000.pth'
 
     #SPARA 
     'configs/culane.py'
@@ -73,7 +73,50 @@ För att återuppta träningen utan att behöva börja om från epok 0, peka `re
     conda activate machinelearning
 
     python test.py configs/culane.py \
-    --test_model /home/patrikwinkler/CULaneLogs/ufld_culane_res50/20250603_130932_lr_1e-01_b_32/ep010.pth \
-    --test_work_dir tmp_eval_ep10
+    --test_model /home/patrikwinkler/CULaneLogs/ufld_culane_res50multiep039/20250608_082135_lr_1e-04_b_32/ep045.pth \
+    --test_work_dir tmp_eval_multi_latest_ep45
+
+## Tensorboard
+    tensorboard --logdir=/home/patrikwinkler/CULaneLogs/ufld_culane_res50multi
+
+    tensorboard --logdir=/home/patrikwinkler/CULaneLogs/ufld_culane_res50fintuned
+
+    tensorboard --logdir=/home/patrikwinkler/CULaneLogs/ufld_culane_finetune001
+
+    tensorboard --logdir=/home/patrikwinkler/CULaneLogs/ufld_culane_finetune1
+
+    tensorboard --logdir=/home/patrikwinkler/CULaneLogs/ufld_culane_res50multiep041
+
+    tensorboard --logdir=/home/patrikwinkler/CULaneLogs/ufld_culane_res50multiep039
+
+    tensorboard --logdir=/home/patrikwinkler/KITTILogs/runs
 
 
+## DEPTH_ESIMATION MODEL CONFIG:
+
+
+    python train.py \
+        --model_name finetune_resnet50_kitti \
+        --split eigen_zhou \
+        --data_path /home/patrikwinkler/KITTIdata/kitti_raw/ \
+        --log_dir /home/patrikwinkler/KITTILogs/runs \
+        --num_layers 50 \
+        --load_weights_folder /home/patrikwinkler/KITTILogs/runs/finetune_resnet50_kitti/models/weights_9 \
+        --png \
+        --batch_size 6 \
+        --learning_rate 1e-5 \
+        --num_epochs 8 \
+        --scheduler_step_size 5 \
+        --num_workers 2
+
+
+## evaluate_depth.py:
+
+
+    python evaluate_depth.py \
+     --data_path /home/patrikwinkler/KITTIdata/kitti_raw/ \
+     --eval_split eigen \
+     --load_weights_folder /home/patrikwinkler/KITTILogs/runs/finetune_resnet50_kitti/models/weights_4 \
+     --num_layers 50 \
+     --png \
+     --eval_mono

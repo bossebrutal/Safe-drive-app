@@ -101,8 +101,11 @@ class QuizSubmitResponse(BaseModel):
 class RewardResponse(BaseModel):
     id: int
     title: str
-    description: Optional[str]
+    description: str | None = None
     cost_points: int
+    expires_at: datetime | None = None
+    location: str | None = None
+
     class Config:
         from_attributes = True
 
@@ -115,7 +118,11 @@ class UserRewardResponse(BaseModel):
     user_id: int
     reward_id: int
     claimed_at: datetime
+    expires_at: Optional[datetime] = None
+    used: bool
+    redeemed_at: Optional[datetime] = None
     reward: RewardResponse
+    
     class Config:
         from_attributes = True
 
@@ -131,9 +138,10 @@ class DrivingSessionResponse(BaseModel):
     user_id: int
     file_path: str
     start_time: datetime
-    end_time: datetime
+    end_time: Optional[datetime] = None
     total_points: int
-
+    duration: Optional[float] = None  # Duration in seconds
+    
     class Config:
         from_attributes = True
 

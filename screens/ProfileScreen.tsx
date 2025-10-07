@@ -21,8 +21,13 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { fetchWithAuth } from '../utils/api';
+import QRCode from 'react-native-qrcode-svg';
+import { Linking } from 'react-native';
+import { AppState } from 'react-native';
 
-const API_BASE = 'https://7fa2593c8858.ngrok.app';
+const API_BASE = 'https://docs.mysafedriveapp.org/docs';
 const GREEN = '#8DA46D';
 const DARK = '#123524';
 const GREY = '#777';
@@ -48,11 +53,16 @@ type Car = {
 type UserReward = {
   id: number;
   claimed_at: string;
+  expires_at?: string | null;      // Personlig giltighet (från user_rewards)
+  used?: boolean;                  // Om rewarden är använd (från user_rewards)
+  redeemed_at?: string | null;     // När rewarden användes (från user_rewards)
   reward: {
     id: number;
     title: string;
     description?: string;
     cost_points: number;
+    expires_at?: string | null;    // Generell giltighet (från rewards)
+    location?: string | null;      // Plats (från rewards)
   };
 };
 
@@ -61,6 +71,10 @@ type PhotoUpload = {
   user_id: number;
   file_path: string;
   created_at: string;
+};
+
+type ProfileScreenProps = {
+  onLogout: () => void;
 };
 
 // Enkel egen dropdown
@@ -104,7 +118,7 @@ function MiniPicker({
   );
 }
 
-export default function ProfileScreen({ navigation }: { navigation: any }) {
+export default function ProfileScreen({ navigation, onLogout }: { navigation: any, onLogout: () => void }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [cars, setCars] = useState<Car[]>([]);
@@ -125,8 +139,12 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [avatarLibrary, setAvatarLibrary] = useState<PhotoUpload[]>([]);
   const [isLoadingAvatarLibrary, setIsLoadingAvatarLibrary] = useState(false);
 
+  // Belöning som användaren valt att se mer info om
+  const [selectedReward, setSelectedReward] = useState<UserReward | null>(null);
+
   // ─═══ Steg 1: Läs in profildata ┐ ════════════════════════════
   const loadProfile = useCallback(async () => {
+    setSelectedReward(null);
     setLoading(true);
     let storedUserJson: string | null = null;
     try {
@@ -151,7 +169,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
     try {
       // Hämta full user‐post (inkl. avatar_url) från backend
-      const uRes = await fetch(`${API_BASE}/users/${me.id}`);
+      const uRes = await fetchWithAuth(`${API_BASE}/users/${me.id}`);
       if (!uRes.ok) throw new Error('Failed to fetch user');
       const fullRaw = (await uRes.json()) as any;
 
@@ -174,13 +192,13 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       });
 
       // Hämta användarens bilar
-      const cRes = await fetch(`${API_BASE}/users/${me.id}/cars`);
+      const cRes = await fetchWithAuth(`${API_BASE}/users/${me.id}/cars`);
       if (!cRes.ok) throw new Error('Failed to fetch cars');
       const carList = (await cRes.json()) as Car[];
       setCars(carList);
 
       // Hämta användarens belöningar
-      const rRes = await fetch(`${API_BASE}/users/${me.id}/rewards`);
+      const rRes = await fetchWithAuth(`${API_BASE}/users/${me.id}/rewards`);
       if (!rRes.ok) throw new Error('Failed to fetch user rewards');
       const purchased = (await rRes.json()) as UserReward[];
       purchased.sort((a, b) =>
@@ -204,6 +222,19 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     }, [loadProfile])
   );
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        loadProfile();
+      }
+    });
+    return () => subscription.remove();
+  }, [loadProfile]);
+
+  const qrValue = selectedReward && user
+    ? `https://docs.mysafedriveapp.org/docs/redeem?user_reward_id=${selectedReward.id}&user_id=${user.id}&reward_id=${selectedReward.reward.id}`
+    : '';
+
   // ─═══ Steg 2: Spara grundläggande profiländringar ┐ ════════════════
   const handleSave = async () => {
     if (!form.firstname.trim() || !form.lastname.trim() || !form.email.trim()) {
@@ -216,7 +247,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/users/${user.id}`, {
+      const res = await fetchWithAuth(`${API_BASE}/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,7 +295,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       if (Platform.OS === 'android' && url.includes('localhost')) {
         url = url.replace('localhost', '10.0.2.2');
       }
-      const res = await fetch(url);
+      const res = await fetchWithAuth(url);
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const list = (await res.json()) as PhotoUpload[];
       setAvatarLibrary(list);
@@ -323,7 +354,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     } as any);
 
     try {
-      const uploadRes = await fetch(`${API_BASE}/photo_upload/?user_id=${user!.id}`, {
+      const uploadRes = await fetchWithAuth(`${API_BASE}/photo_upload/?user_id=${user!.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'multipart/form-data' },
         body: formData,
@@ -332,7 +363,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
       // Hämta om biblioteket och välj sista bilden
       await fetchAvatarLibrary();
-      const listAfter = (await fetch(`${API_BASE}/photo_uploads/?user_id=${user!.id}`)).json() as Promise<PhotoUpload[]>;
+      const listAfter = (await fetchWithAuth(`${API_BASE}/photo_uploads/?user_id=${user!.id}`)).json() as Promise<PhotoUpload[]>;
       const newest = (await listAfter).sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )[0];
@@ -370,7 +401,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         } as any);
       }
 
-      const res = await fetch(`${API_BASE}/users/${user.id}/avatar`, {
+      const res = await fetchWithAuth(`${API_BASE}/users/${user.id}/avatar`, {
         method: 'POST',
         headers: { 'Content-Type': 'multipart/form-data' },
         body: formData,
@@ -398,6 +429,33 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     }
   };
 
+  const handleLogout = () => {
+    const doLogout = async () => {
+      try {
+        await SecureStore.deleteItemAsync('access_token');
+        await AsyncStorage.removeItem('user');
+        console.log('🚪 User logged out, token and user removed');
+      } catch (e) {
+        console.warn('Could not remove user from AsyncStorage:', e);
+      }
+      if (typeof onLogout === 'function') onLogout();
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to log out?')) {
+        doLogout();
+      }
+    } else {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to log out?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes', onPress: doLogout },
+        ]
+      );
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.background}>
@@ -419,6 +477,13 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   return (
     <SafeAreaView style={styles.background}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity
+          style={styles.logoutIconButton}
+          onPress={handleLogout}
+          accessibilityLabel="Logga ut"
+        >
+          <Ionicons name="log-out-outline" size={28} color="#fff" />
+        </TouchableOpacity>
         {Platform.OS === 'web' && (
           <input
             ref={fileInputRef}
@@ -477,13 +542,67 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         >
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
-
+        
+        {selectedReward && (
+          <View style={{
+            backgroundColor: DARK_BLUE,
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 20,
+            borderColor: BLACK_C,
+            borderWidth: 1,
+            alignItems: 'center',
+          }}>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>
+              {selectedReward.reward.title}
+            </Text>
+            <Text style={{ color: '#fff', marginBottom: 8 }}>
+              {selectedReward.reward.description || 'Ingen beskrivning.'}
+            </Text>
+            <Text style={{ color: '#ccc', marginBottom: 4 }}>
+              Giltig till: {selectedReward.expires_at
+                ? new Date(selectedReward.expires_at).toLocaleDateString()
+                : 'Okänt'}
+            </Text>
+            <Text style={{ color: '#ccc', marginBottom: 12 }}>
+              Plats: {selectedReward.reward.location || 'Valfri partner'}
+            </Text>
+            {/* QR-kod-plats */}
+            <View style={{
+              width: 160, height: 160, backgroundColor: '#fff', borderRadius: 12,
+              alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+            }}>
+              <QRCode value={qrValue} size={150} />
+            </View>
+            <TouchableOpacity onPress={() => qrValue && Linking.openURL(qrValue)}>
+              <Text style={{ color: '#8DA46D', fontSize: 10, marginBottom: 8, textDecorationLine: 'underline' }}>
+                {qrValue}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: GREEN,
+                paddingVertical: 8,
+                paddingHorizontal: 24,
+                borderRadius: 6,
+                marginTop: 8,
+              }}
+              onPress={() => setSelectedReward(null)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Stäng</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {/* ========== Purchased Rewards ========== */}
         {rewards.length > 0 && (
           <>
             <Text style={styles.sectionHeader}>Your Rewards</Text>
-            {rewards.map((r: UserReward) => (
-              <View key={r.id} style={styles.rewardCard}>
+            {rewards.filter(r => !r.used).map((r: UserReward) => (
+              <TouchableOpacity
+                key={r.id}
+                style={styles.rewardCard}
+                onPress={() => setSelectedReward(r)}
+              >
                 <Text style={styles.rewardTitle}>{r.reward.title}</Text>
                 {r.reward.description && (
                   <Text style={styles.rewardDesc}>{r.reward.description}</Text>
@@ -494,7 +613,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
                 <Text style={styles.rewardCost}>
                   (-{r.reward.cost_points} pts)
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </>
         )}
@@ -664,6 +783,19 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           </View>
         </View>
       </Modal>
+      <View style={{
+        position: 'absolute',
+        bottom: 14,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: 0.1,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          © 2025 SafeDrivePW
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -909,4 +1041,21 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
   },
+  logoutIconButton: {
+    position: 'absolute',
+    top: 5,
+    right: 20,
+    backgroundColor: DARK_BLUE,
+    borderRadius: 24,
+    padding: 8,
+    zIndex: 10,
+    borderColor: BLACK_C,
+    borderWidth: 1,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  logoutButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 });

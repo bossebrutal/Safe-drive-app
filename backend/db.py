@@ -30,6 +30,10 @@ Base = declarative_base()
 # Use this on FastAPI startup to ensure tables exist
 def init_db():
     from models import User, Car, Achievement, UserAchievement, QuizQuestion, QuizOption, UserQuizResult
-    from models import DrivingSession, PointEvent, Reward, UserReward, FeedbackReport
+    from models import DrivingSession, PointEvent, Reward, UserReward, FeedbackReport, PhotoUpload, PasswordResetCode
 
     Base.metadata.create_all(bind=engine)
+
+if __name__ == "__main__":
+    init_db()
+    print("Alla tabeller är skapade!")

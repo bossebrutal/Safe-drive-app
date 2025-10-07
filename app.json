@@ -52,7 +52,14 @@
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
         }
-      ]
-    ]
+      ],
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "215c3f0a-cd10-4207-9d35-67642c3e9cdc"
+      }
+    },
+    "owner": "bossebrutal"
   }
 }

@@ -13,11 +13,12 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchWithAuth } from '../utils/api';
 
 
 type Car = { id: number; name: string; brand?: string; model?: string; color?: string; year?: number; };
 
-const API_BASE = 'https://7fa2593c8858.ngrok.app';
+const API_BASE = 'https://docs.mysafedriveapp.org/docs';
 const GREEN = '#8DA46D';
 const DARK = '#123524';
 const GREY = '#777';
@@ -53,7 +54,7 @@ export default function MyCarScreen() {
           return;
         }
         const me = JSON.parse(storedJson) as { id: number };
-        const res = await fetch(`${API_BASE}/users/${me.id}/cars`);
+        const res = await fetchWithAuth(`${API_BASE}/users/${me.id}/cars`);
         if (!res.ok) throw new Error(res.statusText);
         const data: Car[] = await res.json();
         setCars(data);
@@ -126,7 +127,7 @@ export default function MyCarScreen() {
       let resultCar: Car;
       if (editingCarId !== null) {
         // EDIT
-        res = await fetch(`${API_BASE}/cars/${editingCarId}`, {
+        res = await fetchWithAuth(`${API_BASE}/cars/${editingCarId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -137,7 +138,7 @@ export default function MyCarScreen() {
         showMessage('Car updated', `${resultCar.name} updated!`);
       } else {
         // ADD
-        res = await fetch(`${API_BASE}/cars`, {
+        res = await fetchWithAuth(`${API_BASE}/cars`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -176,7 +177,7 @@ export default function MyCarScreen() {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/cars/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`${API_BASE}/cars/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(res.statusText);
       setCars((cs) => cs.filter((c) => c.id !== id));
       showMessage('Car deleted', 'The car has been removed.');
@@ -271,6 +272,19 @@ export default function MyCarScreen() {
           </View>
         </View>
       </Modal>
+      <View style={{
+        position: 'absolute',
+        bottom: 14,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: 0.1,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          © 2025 SafeDrivePW
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }

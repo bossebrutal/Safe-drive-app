@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Image, Alert, Platform, Switch, TouchableOpacity }  from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { fetchWithAuth } from '../utils/api';
+import { Modal } from 'react-native';
 
-const API_BASE = 'https://7fa2593c8858.ngrok.app';
+const API_BASE = 'https://docs.mysafedriveapp.org/docs';
 const GREEN = '#8DA46D';
 const DARK = '#123524';
 const GREY = '#777';
@@ -29,6 +32,9 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [emailFocused, setEmailFocused]       = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [forgotModalVisible, setForgotModalVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
   
   useEffect(() => {
     async function loadRememberedCredentials() {
@@ -79,10 +85,12 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
           id:        data.user_id,
           firstname: data.firstname,
           lastname:  data.lastname,
+          token:     data.access_token,
         };
 
         try {
           await AsyncStorage.setItem('user', JSON.stringify(me));
+          await SecureStore.setItemAsync('access_token', data.access_token);
           console.log('✅ Stored user in AsyncStorage:', me);
         } catch (e) {
           console.warn('Could not store user in AsyncStorage:', e);
@@ -115,6 +123,31 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
       const message = err instanceof Error ? err.message : 'An unknown error occurred.';
       showMessage('Network error', message);
     }
+  };
+
+  const handleForgotPassword = async () => {
+    const trimmedEmail = forgotEmail.trim();
+    if (!trimmedEmail.includes('@')) {
+      showMessage("Fel e-post", "Skriv in en giltig e-postadress.");
+      return;
+    }
+    setSendingCode(true);
+    try {
+      const response = await fetch(`${API_BASE}/forgot_password?email=${encodeURIComponent(trimmedEmail)}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showMessage("Kod skickad", data.message || "En kod har skickats till din e-post.");
+        setForgotModalVisible(false);
+        setForgotEmail('');
+      } else {
+        showMessage("Fel", data.detail || "Kunde inte skicka kod.");
+      }
+    } catch (err) {
+      showMessage("Nätverksfel", "Kunde inte kontakta servern.");
+    }
+    setSendingCode(false);
   };
 
   return (
@@ -161,8 +194,31 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
         <Text style={styles.signupText}> You dont have an account? {'\n'} Singup here!</Text>
 
         <TouchableOpacity style={styles.registerButton} onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.registerButtonText}>Register</Text>
+          <Text style={styles.registerButtonText}>Register Account</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={{ color: '#fff', marginBottom: 10, textDecorationLine: 'underline' }}>
+            Glömt lösenord?
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')}>
+          <Text style={{ color: '#fff', marginBottom: 10, textDecorationLine: 'underline' }}>
+            Har du redan en kod? Byt lösenord här!
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <View style={{
+        position: 'absolute',
+        bottom: 18,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: 0.1,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          © 2025 SafeDrivePW
+        </Text>
       </View>
     </View>
   );
@@ -174,8 +230,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#123524',
   },
   container: {
-    padding: 20,
-    marginTop: 100,
+    padding: 25,
+    marginTop: 70,
     alignItems: 'center',
   },
   title: {
@@ -210,6 +266,9 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: DARK_BLUE,
+    width: '60%',
+    alignContent: 'center',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -220,7 +279,7 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: WHITE_C,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
   signupText: {
@@ -231,7 +290,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   registerButton: {
-    backgroundColor: DARK_BLUE,
+    backgroundColor: GREY,
+    width: '60%',
+    alignContent: 'center',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -242,7 +304,7 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     color: WHITE_C,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
 });

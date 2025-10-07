@@ -1,102 +1,116 @@
-// AppNavigator.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import {
-  createBottomTabNavigator
-} from '@react-navigation/bottom-tabs';
-import {
-  createNativeStackNavigator
-} from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { Dimensions } from 'react-native';
 
-import LoginScreen          from '../screens/LoginScreen';
-import RegisterScreen       from '../screens/RegisterScreen';
-import HomeScreen           from '../screens/HomeScreen';
-import ProfileScreen        from '../screens/ProfileScreen';
-import MyCarScreen          from '../screens/MyCarScreen';
-import NavScreen            from '../screens/NavScreen';
-import DriveRewardsScreen   from '../screens/DriveRewardsScreen';
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import HomeScreen from '../screens/HomeScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import MyCarScreen from '../screens/MyCarScreen';
+import NavScreen from '../screens/NavScreen';
+import DriveRewardsScreen from '../screens/DriveRewardsScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 
-//
-// 1) Create two navigators WITHOUT forcing <any> or wrong names:
-//
-//    - Stack has routes "Login", "Register", "Main"
-//    - Tabs has routes "Home", "Profile", "MyCar", "Nav", "Rewards"
-//
 
 const Stack = createNativeStackNavigator();
-const Tab   = createBottomTabNavigator();
+const Tab = createBottomTabNavigator();
 
-//
-// 2) MainTabs: the bottom‐tab navigator that appears once the user is logged in.
-//    We pass an onLogout callback if the HomeScreen (or any child) needs to log out.
-//
+const linking = {
+  prefixes: ['safedriveapp://'],
+  config: {
+    screens: {
+      Profile: 'profile',
+      // ... andra screens
+    },
+  },
+};
+
 function MainTabs({ onLogout }: { onLogout: () => void }) {
-  return (
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useEffect(() => {
+    const onChange = ({ window: { width, height } }) => {
+      setIsLandscape(width > height);
+    };
+    const sub = Dimensions.addEventListener('change', onChange);
+    // Initial
+    const { width, height } = Dimensions.get('window');
+    setIsLandscape(width > height);
+    return () => sub.remove();
+  }, []);
+
+   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarShowLabel: false, // Rätt property för att dölja labels
         tabBarActiveTintColor: '#111',
         tabBarInactiveTintColor: '#fff',
-        tabBarStyle: {
-          backgroundColor: '#2f4f4f',
-          borderColor: '#111',
-          borderWidth: 1,
-        },
+        tabBarStyle: [
+          {
+            backgroundColor: '#2f4f4f',
+            borderColor: '#111',
+            borderWidth: 2,
+            borderRadius: 24,
+            margin: 12,
+            position: 'absolute',
+            left: 12,
+            right: 12,
+            shadowColor: '#000',
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+          },
+          
+          isLandscape
+            ? {
+                height: 45, // Lägre tabBar i landscape
+                bottom: 4,  // Mindre marginal i landscape
+                paddingBottom: 8,
+                paddingTop: 8,
+                flexDirection: 'row',
+              }
+            : {
+                height: 64, // Standardhöjd i portrait
+                bottom: 15,
+                paddingBottom: 8,
+                paddingTop: 8,
+              },
+        ],
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, string> = {
-            Home:    'home',
+            Home: 'home',
             Profile: 'person',
-            MyCar:   'car-sport',
-            Nav:     'navigate',
+            MyCar: 'car-sport',
+            Nav: 'camera',
             Rewards: 'star',
           };
-          return <Ionicons name={icons[route.name]} size={size} color={color} />;
+          const iconName = icons[route.name] || 'help-circle';
+          return <Ionicons name={iconName} size={isLandscape ? 22 : 30}  color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home">
-        {(props) => <HomeScreen {...props} onLogout={onLogout} />}
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: '' }} />
+      <Tab.Screen name="Profile" options={{ title: '' }}>
+        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
       </Tab.Screen>
-
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
-      />
-
-      <Tab.Screen
-        name="MyCar"
-        component={MyCarScreen}
-        options={{ title: 'My Car' }}
-      />
-
-      <Tab.Screen
-        name="Nav"
-        component={NavScreen}
-        options={{ title: 'Navigate' }}
-      />
-
-      <Tab.Screen
-        name="Rewards"
-        component={DriveRewardsScreen}
-        options={{ title: 'Rewards' }}
-      />
+      <Tab.Screen name="MyCar" component={MyCarScreen} options={{ title: '' }} />
+      <Tab.Screen name="Nav" component={NavScreen} options={{ title: '' }} />
+      <Tab.Screen name="Rewards" component={DriveRewardsScreen} options={{ title: '' }} />
     </Tab.Navigator>
   );
 }
 
-//
-// 3) AppNavigator: the top‐level stack that shows either Login/Register or the MainTabs
-//
 export default function AppNavigator() {
   const [user, setUser] = useState<any>(null);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user === null ? (
-          // AUTH FLOW
           <>
             <Stack.Screen name="Login">
               {(props) => (
@@ -106,14 +120,11 @@ export default function AppNavigator() {
                 />
               )}
             </Stack.Screen>
-
-            <Stack.Screen
-              name="Register"
-              component={RegisterScreen}
-            />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         ) : (
-          // MAIN APP FLOW
           <Stack.Screen name="Main">
             {(props) => (
               <MainTabs

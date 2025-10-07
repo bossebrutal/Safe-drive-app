@@ -12,9 +12,12 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fetchWithAuth } from '../utils/api';
 
-const API_BASE = 'https://7fa2593c8858.ngrok.app';
+const API_BASE = 'https://docs.mysafedriveapp.org/docs';
 const GREEN = '#8DA46D';
 const DARK = '#123524';
 const GREY = '#777';
@@ -34,9 +37,6 @@ type User = {
   points: number;
 };
 
-type HomeScreenProps = {
-  onLogout: () => void;
-};
 
 const showMessage = (title: string, msg: string) => {
   if (Platform.OS === 'web') {
@@ -46,10 +46,11 @@ const showMessage = (title: string, msg: string) => {
   }
 };
 
-export default function HomeScreen({ onLogout }: HomeScreenProps) {
+export default function HomeScreen() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const insets = useSafeAreaInsets();
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
@@ -78,7 +79,7 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
 
         // 2) Refresh user from server
         try {
-          const resUser = await fetch(`${API_BASE}/users/${parsed.id}`);
+          const resUser = await fetchWithAuth(`${API_BASE}/users/${parsed.id}`);
           if (!resUser.ok) throw new Error(resUser.statusText);
           const freshUser: User = await resUser.json();
           setUser(freshUser);
@@ -91,7 +92,7 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
         // 3) Fetch rewards
         setLoadingRewards(true);
         try {
-          const resRewards = await fetch(`${API_BASE}/rewards`);
+          const resRewards = await fetchWithAuth(`${API_BASE}/rewards`);
           if (!resRewards.ok) throw new Error(resRewards.statusText);
           const rewardList: Reward[] = await resRewards.json();
           setRewards(rewardList);
@@ -116,7 +117,7 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/user_rewards`, {
+        const res = await fetchWithAuth(`${API_BASE}/user_rewards`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: user.id, reward_id: reward.id }),
@@ -147,41 +148,14 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
     setConfirmModalVisible(false);
   };
 
-  const handleLogout = () => {
-    const doLogout = async () => {
-      try {
-        await AsyncStorage.removeItem('user');
-      } catch (e) {
-        console.warn('Could not remove user from AsyncStorage:', e);
-      }
-      onLogout();
-    };
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to log out?')) {
-        doLogout();
-      }
-    } else {
-      Alert.alert(
-        'Logout',
-        'Are you sure you want to log out?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes', onPress: doLogout },
-        ]
-      );
-    }
-  };
-
   return (
-    <SafeAreaView style={styles.background}>
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={handleLogout}
-      >
-        <Text style={styles.logoutButtonText}>Logout</Text>
-      </TouchableOpacity>
-
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: DARK }}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: insets.bottom }
+        ]}
+        >
         <Text style={styles.header}>Available Rewards</Text>
 
         {loadingRewards ? (
@@ -228,7 +202,8 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
               Are you sure you want to purchase:
             </Text>
             <Text style={styles.modalReward}>
-              {selectedReward?.title}{' \n\n'}
+              {selectedReward?.title}
+              {'\n\n'}
               <Text style={{ fontWeight: 'bold' }}>
                 for {selectedReward?.cost_points} points?
               </Text>
@@ -250,29 +225,29 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
           </View>
         </View>
       </Modal>
+      <View style={{
+        position: 'absolute',
+        bottom: 14,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: 0.1,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          © 2025 SafeDrivePW
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1, backgroundColor: DARK },
-  logoutButton: {
-    position: 'absolute',
-    top: 50,
-    right: 10,
-    backgroundColor: DARK_BLUE,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    zIndex: 10,
-    borderColor: BLACK_C,
-    borderWidth: 1,
-  },
-  logoutButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  background: { backgroundColor: DARK },
   container: {
-    padding: 20,
-    paddingTop: 80,
+    paddingTop: 40,
     alignItems: 'center',
+
   },
   header: {
     fontSize: 24,

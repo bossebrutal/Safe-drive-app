@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, Platform, TouchableOpacity } from 'react-native';
 
-const API_BASE = 'https://7fa2593c8858.ngrok.app';
+const API_BASE = 'https://docs.mysafedriveapp.org/docs';
 const GREEN = '#8DA46D';
 const DARK = '#123524';
 const GREY = '#777';
@@ -128,6 +128,19 @@ export default function RegisterScreen({ navigation }: any) {
           <Text style={styles.backtologinButtonText}>Back to login</Text>
         </TouchableOpacity>
 
+      </View>
+      <View style={{
+        position: 'absolute',
+        bottom: 18,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: 0.1,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          © 2025 SafeDrivePW
+        </Text>
       </View>
     </View>
   );

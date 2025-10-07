@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchWithAuth } from '../utils/api';
 
-const API_BASE = 'https://7fa2593c8858.ngrok.app';
+const API_BASE = 'https://docs.mysafedriveapp.org/docs';
 const GREEN = '#8DA46D';
 const DARK = '#123524';
 const GREY = '#777';
@@ -82,7 +83,7 @@ export default function DriveRewardsScreen({ navigation }: any) {
   const takeQuiz = useCallback(async () => {
     setLoadingQuiz(true);
     try {
-      const res = await fetch(`${API_BASE}/quiz`);
+      const res = await fetchWithAuth(`${API_BASE}/quiz`);
       if (!res.ok) throw new Error(res.statusText);
       const all: QuizQuestion[] = await res.json();
       // shuffle and pick first 10
@@ -122,7 +123,7 @@ export default function DriveRewardsScreen({ navigation }: any) {
       })),
     };
 
-    const res = await fetch(`${API_BASE}/quiz/submit`, {
+    const res = await fetchWithAuth(`${API_BASE}/quiz/submit`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(payload),
@@ -316,6 +317,19 @@ export default function DriveRewardsScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+      <View style={{
+        position: 'absolute',
+        bottom: 14,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 9999,
+        opacity: 0.1,
+      }}>
+        <Text style={{ color: '#fff', fontSize: 12 }}>
+          © 2025 SafeDrivePW
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }

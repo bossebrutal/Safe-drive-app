@@ -8,6 +8,7 @@
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+*:Zone.Identifier
 
 # ==============================================
 # 2. Frontend / Node (React / React Native / Expo)
@@ -68,11 +69,12 @@ build/
 # ==============================================
 # 4. Machine Learning – stora filer och data
 # ==============================================
-# Modellvikter / checkpoints
+# Modellvikter / checkpoints (large files)
 *.pt
 *.ckpt
 *.h5
 *.pth
+*.onnx
 *.tensorboard
 runs/
 tmp/
@@ -88,23 +90,39 @@ logs/
 # Dataset och tillfälliga utdata (anpassa efter dina mappar)
 machinelearning/data/
 machinelearning/test_images/
-machinelearning/tested_images/
-machinelearning/Ultra-Fast-Lane-Detection/tmp_eval/
-
-# Objekt som genereras av körningar (t ex bilder, videoprocessing)
+machinelearning/tested_images*/
+machinelearning/test_videos*/
+machinelearning/tested_videos*/
 machinelearning/tmp_*
 machinelearning/output_*
 machinelearning/vis.jpg
 
-#Ultra-Fast-Lane-Detection
+# Exkludera hela Ultra-Fast-Lane-Detection repository
 machinelearning/Ultra-Fast-Lane-Detection/
 
-# Lite backend-data
+# Depth_estimation relaterade filer
+machinelearning/depth_estimation/
+
+# Backend-specifika filer och uploads
 backend/static/
 backend/uploads/
+backend/tmp/
+backend/__pycache__/
+backend/*.jpg
+backend/*.png
 
-#Privat README
+# Privata dokument
 docs/READMEprivat.md
+
+# Test-filer och temporära bilder
+tested_imagesep044/
+scripts/
+
+# Keep documentation screenshots (don't ignore)
+!docs/screenshots/
+!docs/screenshots/*.png
+!docs/screenshots/*.jpg
+!docs/screenshots/*.gif
 
 # ==============================================
 # 5. IDE / Editor / Projekt-specifikt
